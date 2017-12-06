@@ -27,7 +27,7 @@ import (
 func NewWork(manager *Manager) *Work {
 	this := new(Work)
 	this.manager = manager
-	//opts:=this.GetDefaultOptions("tls://123.56.166.90:3563")
+	//opts:=this.GetDefaultOptions("tls://127.0.0.1:3563")
 	opts := this.GetDefaultOptions("tcp://127.0.0.1:3563")
 	opts.SetDefaultPublishHandler(func(client MQTT.Client, msg MQTT.Message) {
 		//收到消息
