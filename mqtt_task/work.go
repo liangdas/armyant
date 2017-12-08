@@ -82,5 +82,4 @@ N/C 可计算出每一个Work(协程) RunWorker将要调用的次数
 func (this *Work) RunWorker(t *task.Task) {
 	s := fmt.Sprintf(`{"userName":"xxxxx", "passWord":"123456%d"}`, time.Now().Unix())
 	this.GetClient().Publish("Login/HD_Login/1", 0, false, []byte(s))
-	this.GetClient().Publish("Login/HD_Robot/1", 0, false, []byte(s))
 }
