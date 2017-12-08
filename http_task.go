@@ -23,7 +23,7 @@ func main() {
 
 	task := task.Task{
 		N: 10000, //一共请求次数，会被平均分配给每一个并发协程
-		C: 2000,  //并发数
+		C: 200,  //并发数
 		//QPS:10,		//每一个并发平均每秒请求次数(限流) 不填代表不限流
 	}
 	manager := http_task.NewManager(task)
