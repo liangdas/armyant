@@ -39,7 +39,7 @@ task:=task.Task{
 N/C 可计算出每一个Work(协程) RunWorker将要调用的次数
 */
 func (this *Work) RunWorker(t *task.Task) {
-	request, _ := http.NewRequest("GET", "http://wx9r.com/1e", nil)
+	request, _ := http.NewRequest("GET", "http://127.0.0.1:8080/status", nil)
 	// set content-type
 	header := make(http.Header)
 	header.Set("Content-Type", "text/html")
