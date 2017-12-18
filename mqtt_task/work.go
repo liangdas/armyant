@@ -27,6 +27,8 @@ import (
 func NewWork(manager *Manager) *Work {
 	this := new(Work)
 	this.manager = manager
+	this.curr_id=0
+	this.waiting_queue=make(map[string]func(client MQTT.Client, msg MQTT.Message))
 	//opts:=this.GetDefaultOptions("tls://127.0.0.1:3563")
 	opts := this.GetDefaultOptions("tcp://127.0.0.1:3563")
 	opts.SetDefaultPublishHandler(func(client MQTT.Client, msg MQTT.Message) {
@@ -66,8 +68,38 @@ Work 代表一个协程内具体执行任务工作者
 type Work struct {
 	work.MqttWork
 	manager *Manager
+	waiting_queue map[string]func(client MQTT.Client, msg MQTT.Message)
+	curr_id	int64
 }
-
+/**
+     * 向服务器发送一条消息
+     * @param topic
+     * @param msg
+     * @param callback
+     */
+func (this *Work) Request(topic string,body []byte,callback func(client MQTT.Client, msg MQTT.Message)){
+	this.curr_id=this.curr_id+1
+	topic=fmt.Sprintf("%s/%d",topic,this.curr_id) //给topic加一个msgid 这样服务器就会返回这次请求的结果,否则服务器不会返回结果
+	this.On(topic,callback)
+	this.GetClient().Publish(topic, 0, false, body)
+}
+/**
+ * 向服务器发送一条消息,但不要求服务器返回结果
+ * @param topic
+ * @param msg
+ */
+func (this *Work) RequestNR(topic string,body []byte){
+	this.GetClient().Publish(topic, 0, false, body)
+}
+/**
+ * 监听指定类型的topic消息
+ * @param topic
+ * @param callback
+ */
+func (this *Work) On(topic string,callback func(client MQTT.Client, msg MQTT.Message)){
+	////服务器不会返回结果
+	this.waiting_queue[topic]=callback //添加这条消息到等待队列
+}
 /**
 每一次请求都会调用该函数,在该函数内实现具体请求操作
 
@@ -81,5 +113,7 @@ N/C 可计算出每一个Work(协程) RunWorker将要调用的次数
 */
 func (this *Work) RunWorker(t *task.Task) {
 	s := fmt.Sprintf(`{"userName":"xxxxx", "passWord":"123456%d"}`, time.Now().Unix())
-	this.GetClient().Publish("Login/HD_Login/1", 0, false, []byte(s))
+	this.Request("Login/HD_Login",[]byte(s),func(client MQTT.Client, msg MQTT.Message){
+		fmt.Println(msg.Topic())
+	})
 }
