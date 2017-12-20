@@ -60,11 +60,19 @@ type Work struct {
      * @param msg
      * @param callback
      */
-func (this *Work) Request(topic string,body []byte,callback func(client MQTT.Client, msg MQTT.Message)){
+func (this *Work) Request(topic string,body []byte)(MQTT.Message,error){
 	this.curr_id=this.curr_id+1
 	topic=fmt.Sprintf("%s/%d",topic,this.curr_id) //给topic加一个msgid 这样服务器就会返回这次请求的结果,否则服务器不会返回结果
-	this.On(topic,callback)
+	result:=make(chan MQTT.Message)
+	this.On(topic,func(client MQTT.Client, msg MQTT.Message){
+		result<-msg
+	})
 	this.GetClient().Publish(topic, 0, false, body)
+	msg, ok := <-result
+	if !ok {
+		return nil, fmt.Errorf("client closed")
+	}
+	return msg,nil
 }
 /**
  * 向服务器发送一条消息,但不要求服务器返回结果
@@ -95,7 +103,10 @@ task:=task.Task{
 N/C 可计算出每一个Work(协程) RunWorker将要调用的次数
 */
 func (this *Work) RunWorker(t *task.Task) {
-	this.Request("Login/HD_Login",[]byte(`{"userName":"xxxxx", "passWord":"123456"}`),func(client MQTT.Client, msg MQTT.Message){
-		fmt.Println(msg.Topic())
-	})
+	msg,err:=this.Request("Login/HD_Login",[]byte(`{"userName":"xxxxx", "passWord":"123456"}`))
+	if err!=nil{
+		fmt.Println(err.Error())
+		return
+	}
+	fmt.Println(msg.Topic())
 }
