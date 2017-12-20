@@ -17,11 +17,37 @@ import (
 	"github.com/liangdas/armyant/task"
 	"io"
 	"os"
+	"io/ioutil"
+	"fmt"
+	"crypto/x509"
+	"crypto/tls"
+	"sync"
 )
 
 type Manager struct {
 	// Writer is where results will be written. If nil, results are written to stdout.
 	Writer io.Writer
+	cert *tls.Config
+	lock sync.RWMutex
+}
+func (this *Manager)Cert() *tls.Config{
+	this.lock.Lock()
+	if this.cert==nil{
+		// load root ca
+		// 需要一个证书，这里使用的这个网站提供的证书https://curl.haxx.se/docs/caextract.html
+		caData, err := ioutil.ReadFile("/work/go/gopath/src/github.com/liangdas/armyant/mqtt_task/caextract.pem")
+		if err != nil {
+			fmt.Println(err.Error())
+		}
+		pool := x509.NewCertPool()
+		pool.AppendCertsFromPEM(caData)
+		this.cert= &tls.Config{
+			RootCAs:            pool,
+			InsecureSkipVerify: true,
+		}
+	}
+	this.lock.Unlock()
+	return this.cert
 }
 
 func (this *Manager) writer() io.Writer {

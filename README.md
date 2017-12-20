@@ -41,6 +41,23 @@ hey只支持http接口的压力测试而armant可以自定义压测协议。
 #### linux打开方式
   自己百度
 
+#### paho.mqtt.golang 内存怪兽
+
+> 默认的paho.mqtt.golang客户端是内存怪兽，每一个mqtt客户端都会消耗巨大内存
+gopath/src/github.com/eclipse/paho.mqtt.golang/client.go
+
+    c.messageIds = messageIds{index: [65535]Token{}} 默认会创建65535个Token
+
+    改为
+
+    c.messageIds = messageIds{index: [10]Token{}}
+
+gopath/src/github.com/eclipse/paho.mqtt.golang/messageids.go
+
+messageids.go 文件也需要做对应修改
+
+
+
 #### mqant的压测参数
 
 系统硬件:
@@ -54,18 +71,15 @@ hey只支持http接口的压力测试而armant可以自定义压测协议。
 
 压测结果:
 
-    每一个连接每秒发出10个远程调用请求
-    能达到的最大并发数为:3000
+    每一个连接每秒发出1个远程调用请求
+    能达到的最大并发数为:5000
 
 内存使用:
 
- mqantserver进程 90M
+ mqantserver进程 131M
+ aryant  进程 191m
 
- CPU使用：
-
- mqantserver 120%
-
- aryant  100%
+如只连接不发远程调用请求可以轻松上万并发
 
 本次压测结果并不严谨,所用设备是自己的MAC电脑，同时还开启了很多编译器。
 压测工具与测试进程也都在同一台机器,压测瓶颈主要在CPU性能上

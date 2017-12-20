@@ -14,14 +14,10 @@
 package mqtt_task
 
 import (
-	"crypto/tls"
-	"crypto/x509"
 	"fmt"
 	MQTT "github.com/eclipse/paho.mqtt.golang"
 	"github.com/liangdas/armyant/task"
 	"github.com/liangdas/armyant/work"
-	"io/ioutil"
-	"time"
 )
 
 func NewWork(manager *Manager) *Work {
@@ -41,21 +37,8 @@ func NewWork(manager *Manager) *Work {
 	opts.SetOnConnectHandler(func(client MQTT.Client) {
 		fmt.Println("OnConnectHandler")
 	})
-	// load root ca
-	// 需要一个证书，这里使用的这个网站提供的证书https://curl.haxx.se/docs/caextract.html
-	caData, err := ioutil.ReadFile("/work/go/gopath/src/github.com/liangdas/armyant/mqtt_task/caextract.pem")
-	if err != nil {
-		fmt.Println(err.Error())
-	}
-	pool := x509.NewCertPool()
-	pool.AppendCertsFromPEM(caData)
-
-	config := &tls.Config{
-		RootCAs:            pool,
-		InsecureSkipVerify: true,
-	}
-	opts.SetTLSConfig(config)
-	err = this.Connect(opts)
+	opts.SetTLSConfig(manager.Cert())
+	err := this.Connect(opts)
 	if err != nil {
 		fmt.Println(err.Error())
 	}
@@ -112,8 +95,7 @@ task:=task.Task{
 N/C 可计算出每一个Work(协程) RunWorker将要调用的次数
 */
 func (this *Work) RunWorker(t *task.Task) {
-	s := fmt.Sprintf(`{"userName":"xxxxx", "passWord":"123456%d"}`, time.Now().Unix())
-	this.Request("Login/HD_Login",[]byte(s),func(client MQTT.Client, msg MQTT.Message){
+	this.Request("Login/HD_Login",[]byte(`{"userName":"xxxxx", "passWord":"123456"}`),func(client MQTT.Client, msg MQTT.Message){
 		fmt.Println(msg.Topic())
 	})
 }

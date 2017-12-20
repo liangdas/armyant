@@ -17,20 +17,22 @@ import (
 	"fmt"
 	"github.com/liangdas/armyant/mqtt_task"
 	"github.com/liangdas/armyant/task"
+	"os"
+	"os/signal"
 )
 
 func main() {
 
 	task := task.Task{
 		N:   10000, //一共请求次数，会被平均分配给每一个并发协程
-		C:   500,  //并发数
+		C:   5000,  //并发数
 		QPS: 1,    //每一个并发平均每秒请求次数(限流)
 	}
 	manager := mqtt_task.NewManager(task)
 	fmt.Println("开始压测请等待")
 	task.Run(manager)
-	//c := make(chan os.Signal, 1)
-	//signal.Notify(c, os.Interrupt)
-	//<-c
-	//os.Exit(1)
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	<-c
+	os.Exit(1)
 }
