@@ -46,7 +46,7 @@ func (this *MqttWork) GetDefaultOptions(addrURI string) *MQTT.ClientOptions {
 				//这个topic存在msgid 那么这个回调只使用一次
 				delete(this.waiting_queue,msg.Topic())
 			}
-			callback(client,msg)
+			go callback(client,msg)
 		}
 	})
 	return opts
