@@ -14,9 +14,11 @@
 package http_task
 
 import (
+	"fmt"
 	"github.com/liangdas/armyant/task"
 	"github.com/liangdas/armyant/work"
 	"net/http"
+	"time"
 )
 
 /**
@@ -24,29 +26,55 @@ Work 代表一个协程内具体执行任务工作者
 */
 type Work struct {
 	work.HttpWork
-	manager *Manager
+	manager  *Manager
+	QPS      int
+	closeSig bool
+	num      int
+}
+
+func (this *Work) Init(t task.Task) {
+	this.QPS = 10
+	this.num = 0
+	this.closeSig = false
 }
 
 /**
-每一次请求都会调用该函数,在该函数内实现具体请求操作
 
-task:=task.Task{
-		N:1000,	//一共请求次数，会被平均分配给每一个并发协程
-		C:100,		//并发数
-		//QPS:10,		//每一个并发平均每秒请求次数(限流) 不填代表不限流
+ */
+func (this *Work) RunWorker(t task.Task) {
+	for !this.closeSig {
+		var throttle <-chan time.Time
+		if this.QPS > 0 {
+			throttle = time.Tick(time.Duration(1e6/(this.QPS)) * time.Microsecond)
+		}
+
+		if this.QPS > 0 {
+			<-throttle
+		}
+		this.worker(t)
+	}
 }
-
-N/C 可计算出每一个Work(协程) RunWorker将要调用的次数
-*/
-func (this *Work) RunWorker(t *task.Task) {
-	request, _ := http.NewRequest("GET", "http://127.0.0.1:8080/status", nil)
+func (this *Work) worker(t task.Task) {
+	this.num++
+	//request, _ := http.NewRequest("GET", "http://10.3.13.1/open/v4/user/act/wx/queryBindState?userId=254093265", nil)
 	// set content-type
+	start := time.Now()
+	request, _ := http.NewRequest("GET", "http://10.3.13.1/randomtime/", nil)
+	//request, _ := http.NewRequest("GET", "http://10.3.13.1/webproxy", nil)  	   //Requests/sec: 37700.0283 43349.0978 44013.4096 43988.5832
+	//request, _ := http.NewRequest("GET", "http://10.3.13.1/open/v6/user/webproxy", nil)//Requests/sec: 32687.6137 36231.0279 36329.8948 36150.4378
 	header := make(http.Header)
 	header.Set("Content-Type", "text/html")
 	request.Header = header
 	result := this.MakeRequest(this.GetClient(), request)
-	if this.manager.results == nil {
-		this.manager.results = make(chan *work.Result, t.N)
+	if result.StatusCode != 200 {
+		fmt.Println(fmt.Sprintf("Response:%v StatusCode:%d", time.Since(start), result.StatusCode))
 	}
-	this.manager.results <- result
+	//if this.manager.results == nil {
+	//	this.manager.results = make(chan *work.Result, t.N)
+	//}
+	//this.manager.results <- result
+}
+func (this *Work) Close(t task.Task) {
+	this.closeSig = true
+	fmt.Println(fmt.Sprintf("num : %d", this.num))
 }

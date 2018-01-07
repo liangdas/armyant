@@ -13,73 +13,17 @@
 // limitations under the License.
 package task
 
-import (
-	"sync"
-	"time"
-)
+import ()
 
 type WorkManager interface {
 	CreateWork() Work
-	Finish(task *Task)
+	Finish(task Task)
 }
 
 type Work interface {
-	RunWorker(task *Task)
+	Init(task Task)
+	RunWorker(task Task)
+	Close(task Task)
 }
-type Task struct {
-
-	// N is the total number of requests to make.
-	N int
-
-	// C is the concurrency level, the number of concurrent workers to run.
-	C int
-
-	// Qps is the rate limit.
-	QPS int
-
-	stopCh chan struct{}
-	Start  time.Time
-}
-
-// Run makes all the requests, prints the summary. It blocks until
-// all work is done.
-func (b *Task) Run(manager WorkManager) {
-	b.stopCh = make(chan struct{}, 1)
-	b.Start = time.Now()
-
-	b.runWorkers(manager)
-	b.Finish(manager)
-}
-
-func (b *Task) Finish(manager WorkManager) {
-	manager.Finish(b)
-	b.stopCh <- struct{}{}
-}
-
-func (b *Task) runWorker(n int, task Work) {
-	var throttle <-chan time.Time
-	if b.QPS > 0 {
-		throttle = time.Tick(time.Duration(1e6/(b.QPS)) * time.Microsecond)
-	}
-
-	for i := 0; i < n; i++ {
-		if b.QPS > 0 {
-			<-throttle
-		}
-		task.RunWorker(b)
-	}
-}
-
-func (b *Task) runWorkers(manager WorkManager) {
-	var wg sync.WaitGroup
-	wg.Add(b.C)
-
-	// Ignore the case where b.N % b.C != 0.
-	for i := 0; i < b.C; i++ {
-		go func() {
-			b.runWorker(b.N/b.C, manager.CreateWork())
-			wg.Done()
-		}()
-	}
-	wg.Wait()
+type Task interface {
 }

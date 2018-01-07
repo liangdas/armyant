@@ -17,16 +17,26 @@ import (
 	"fmt"
 	"github.com/liangdas/armyant/http_task"
 	"github.com/liangdas/armyant/task"
+	"os"
+	"os/signal"
 )
 
 func main() {
 
-	task := task.Task{
-		N: 10000, //一共请求次数，会被平均分配给每一个并发协程
-		C: 200,  //并发数
-		//QPS:10,		//每一个并发平均每秒请求次数(限流) 不填代表不限流
+	task := task.LoopTask{
+		C: 4000, //并发数
 	}
 	manager := http_task.NewManager(task)
 	fmt.Println("开始压测请等待")
-	task.Run(manager)
+	c := make(chan os.Signal, 1)
+	go func() {
+		task.Run(manager)
+	}()
+	signal.Notify(c, os.Interrupt)
+	signal.Notify(c, os.Kill)
+	<-c
+	fmt.Println("准备停止")
+	task.Stop()
+	task.Wait()
+	fmt.Println("压测完成")
 }

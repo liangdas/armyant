@@ -18,13 +18,15 @@ import (
 	MQTT "github.com/eclipse/paho.mqtt.golang"
 	"github.com/liangdas/armyant/task"
 	"github.com/liangdas/armyant/work"
+	"time"
 )
 
 func NewWork(manager *Manager) *Work {
 	this := new(Work)
 	this.manager = manager
 	//opts:=this.GetDefaultOptions("tls://127.0.0.1:3563")
-	opts := this.GetDefaultOptions("tcp://127.0.0.1:3563")
+	//opts := this.GetDefaultOptions("tcp://127.0.0.1:3563")
+	opts := this.GetDefaultOptions("ws://127.0.0.1:3653")
 	opts.SetConnectionLostHandler(func(client MQTT.Client, err error) {
 		fmt.Println("ConnectionLost", err.Error())
 	})
@@ -44,25 +46,44 @@ Work 代表一个协程内具体执行任务工作者
 */
 type Work struct {
 	work.MqttWork
-	manager *Manager
+	manager  *Manager
+	QPS      int
+	closeSig bool
+}
+
+func (this *Work) Init(t task.Task) {
+	this.QPS = 1 //每一个并发平均每秒请求次数(限流)
+	this.closeSig = false
 }
 
 /**
 每一次请求都会调用该函数,在该函数内实现具体请求操作
 
-task:=task.Task{
-		N:1000,	//一共请求次数，会被平均分配给每一个并发协程
+task:=task.LoopTask{
 		C:100,		//并发数
-		//QPS:10,		//每一个并发平均每秒请求次数(限流) 不填代表不限流
 }
-
-N/C 可计算出每一个Work(协程) RunWorker将要调用的次数
 */
-func (this *Work) RunWorker(t *task.Task) {
-	msg,err:=this.Request("Login/HD_Login",[]byte(`{"userName":"xxxxx", "passWord":"123456"}`))
-	if err!=nil{
+func (this *Work) RunWorker(t task.Task) {
+	for !this.closeSig {
+		var throttle <-chan time.Time
+		if this.QPS > 0 {
+			throttle = time.Tick(time.Duration(1e6/(this.QPS)) * time.Microsecond)
+		}
+
+		if this.QPS > 0 {
+			<-throttle
+		}
+		this.worker(t)
+	}
+}
+func (this *Work) worker(t task.Task) {
+	msg, err := this.Request("Login/HD_Login", []byte(`{"userName":"xxxxx", "passWord":"123456"}`))
+	if err != nil {
 		fmt.Println(err.Error())
 		return
 	}
 	fmt.Println(string(msg.Payload()))
+}
+func (this *Work) Close(t task.Task) {
+	this.closeSig = true
 }

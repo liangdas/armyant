@@ -18,7 +18,6 @@ import (
 	"github.com/liangdas/armyant/work"
 	"io"
 	"os"
-	"time"
 )
 
 // Run makes all the requests, prints the summary. It blocks until
@@ -26,7 +25,7 @@ import (
 func NewManager(t task.Task) task.WorkManager {
 	// append hey's user agent
 	this := new(Manager)
-	this.results = make(chan *work.Result, t.N)
+	//this.results = make(chan *work.Result, t.N)
 	return this
 }
 
@@ -42,10 +41,10 @@ func (this *Manager) writer() io.Writer {
 	}
 	return this.Writer
 }
-func (this *Manager) Finish(task *task.Task) {
+func (this *Manager) Finish(task task.Task) {
 	close(this.results)
-	total := time.Now().Sub(task.Start)
-	work.NewReport(this.writer(), task.N, this.results, "", total).Finalize()
+	//total := time.Now().Sub(task.Start)
+	//work.NewReport(this.writer(), task.N, this.results, "", total).Finalize()
 }
 func (this *Manager) CreateWork() task.Work {
 	w := new(Work)

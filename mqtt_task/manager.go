@@ -14,25 +14,26 @@
 package mqtt_task
 
 import (
+	"crypto/tls"
+	"crypto/x509"
+	"fmt"
 	"github.com/liangdas/armyant/task"
 	"io"
-	"os"
 	"io/ioutil"
-	"fmt"
-	"crypto/x509"
-	"crypto/tls"
+	"os"
 	"sync"
 )
 
 type Manager struct {
 	// Writer is where results will be written. If nil, results are written to stdout.
 	Writer io.Writer
-	cert *tls.Config
-	lock sync.RWMutex
+	cert   *tls.Config
+	lock   sync.RWMutex
 }
-func (this *Manager)Cert() *tls.Config{
+
+func (this *Manager) Cert() *tls.Config {
 	this.lock.Lock()
-	if this.cert==nil{
+	if this.cert == nil {
 		// load root ca
 		// 需要一个证书，这里使用的这个网站提供的证书https://curl.haxx.se/docs/caextract.html
 		caData, err := ioutil.ReadFile("/work/go/gopath/src/github.com/liangdas/armyant/mqtt_task/caextract.pem")
@@ -41,7 +42,7 @@ func (this *Manager)Cert() *tls.Config{
 		}
 		pool := x509.NewCertPool()
 		pool.AppendCertsFromPEM(caData)
-		this.cert= &tls.Config{
+		this.cert = &tls.Config{
 			RootCAs:            pool,
 			InsecureSkipVerify: true,
 		}
@@ -56,7 +57,7 @@ func (this *Manager) writer() io.Writer {
 	}
 	return this.Writer
 }
-func (this *Manager) Finish(task *task.Task) {
+func (this *Manager) Finish(task task.Task) {
 	//total := time.Now().Sub(task.Start)
 }
 func (this *Manager) CreateWork() task.Work {
