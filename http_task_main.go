@@ -24,7 +24,7 @@ import (
 func main() {
 
 	task := task.LoopTask{
-		C: 4000, //并发数
+		C: 30, //并发数
 	}
 	manager := http_task.NewManager(task)
 	fmt.Println("开始压测请等待")

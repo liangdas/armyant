@@ -18,6 +18,7 @@ import (
 	MQTT "github.com/eclipse/paho.mqtt.golang"
 	"strings"
 	_ "time"
+	"net/url"
 )
 
 type MqttWork struct {
@@ -77,6 +78,30 @@ func (this *MqttWork) Finish() {
 func (this *MqttWork) Request(topic string, body []byte) (MQTT.Message, error) {
 	this.curr_id = this.curr_id + 1
 	topic = fmt.Sprintf("%s/%d", topic, this.curr_id) //给topic加一个msgid 这样服务器就会返回这次请求的结果,否则服务器不会返回结果
+	result := make(chan MQTT.Message)
+	this.On(topic, func(client MQTT.Client, msg MQTT.Message) {
+		result <- msg
+	})
+	this.GetClient().Publish(topic, 0, false, body)
+	msg, ok := <-result
+	if !ok {
+		return nil, fmt.Errorf("client closed")
+	}
+	return msg, nil
+}
+
+/**
+ * 向服务器发送一条消息
+ * @param topic
+ * @param msg
+ * @param callback
+ */
+func (this *MqttWork) RequestURI(url *url.URL, body []byte) (MQTT.Message, error) {
+	this.curr_id = this.curr_id + 1
+	v:=url.Query()
+	v.Add("msg_id",fmt.Sprintf("%v",this.curr_id))	//给topic加一个msgid 这样服务器就会返回这次请求的结果,否则服务器不会返回结果
+	url.RawQuery=v.Encode()
+	topic := url.String()
 	result := make(chan MQTT.Message)
 	this.On(topic, func(client MQTT.Client, msg MQTT.Message) {
 		result <- msg

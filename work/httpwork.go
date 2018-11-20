@@ -17,7 +17,6 @@ import (
 	"bytes"
 	"crypto/tls"
 	"golang.org/x/net/http2"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptrace"
@@ -130,13 +129,11 @@ func (this *HttpWork) MakeRequest(client *http.Client, req *http.Request) *Resul
 	if err == nil {
 		result.ContentLength = resp.ContentLength
 		result.StatusCode = resp.StatusCode
-		io.Copy(ioutil.Discard, resp.Body)
-		//result.Body,err=ioutil.ReadAll(resp.Body)
+		//io.Copy(ioutil.Discard, resp.Body)
+		result.Body,err=ioutil.ReadAll(resp.Body)
 		resp.Body.Close()
-
-		if err != nil {
-			result.Err = err
-		}
+	}else{
+		result.Err = err
 	}
 	t := time.Now()
 	result.ResDuration = t.Sub(resStart)
