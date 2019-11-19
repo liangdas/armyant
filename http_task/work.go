@@ -59,9 +59,9 @@ func (this *Work) worker(t task.Task) {
 	//request, _ := http.NewRequest("GET", "http://10.3.13.1/open/v4/user/act/wx/queryBindState?userId=254093265", nil)
 	// set content-type
 	start := time.Now()
-	request, _ := http.NewRequest("GET", "http://tyhall51.touch4.me/open/v3/simulate/weixin/http/limit", nil)
+	//request, _ := http.NewRequest("GET", "http://127.0.0.1:7080/assistant/v1/facebook/crontab/task/disable.json?page_id=319237748675996&name=50-20244_120", nil)
 	//request, _ := http.NewRequest("GET", "http://10.3.13.1/webproxy", nil)  	   //Requests/sec: 37700.0283 43349.0978 44013.4096 43988.5832
-	//request, _ := http.NewRequest("GET", "http://10.3.13.1/open/v6/user/webproxy", nil)//Requests/sec: 32687.6137 36231.0279 36329.8948 36150.4378
+	request, _ := http.NewRequest("GET", "http://10.3.13.1/open/v6/user/webproxy", nil)//Requests/sec: 32687.6137 36231.0279 36329.8948 36150.4378
 	header := make(http.Header)
 	header.Set("Content-Type", "text/html")
 	request.Header = header

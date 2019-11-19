@@ -42,10 +42,13 @@ func (this *MqttWork) GetDefaultOptions(addrURI string) *MQTT.ClientOptions {
 		//收到消息
 		if callback, ok := this.waiting_queue[msg.Topic()]; ok {
 			//有等待消息的callback 还缺一个信息超时的处理机制
-			ts := strings.Split(msg.Topic(), "/")
-			if len(ts) > 2 {
-				//这个topic存在msgid 那么这个回调只使用一次
-				delete(this.waiting_queue, msg.Topic())
+			_, err := url.Parse(msg.Topic())
+			if err!=nil{
+				ts := strings.Split(msg.Topic(), "/")
+				if len(ts) > 2 {
+					//这个topic存在msgid 那么这个回调只使用一次
+					delete(this.waiting_queue, msg.Topic())
+				}
 			}
 			go callback(client, msg)
 		}
@@ -96,12 +99,12 @@ func (this *MqttWork) Request(topic string, body []byte) (MQTT.Message, error) {
  * @param msg
  * @param callback
  */
-func (this *MqttWork) RequestURI(url *url.URL, body []byte) (MQTT.Message, error) {
+func (this *MqttWork) RequestURI(u *url.URL, body []byte) (MQTT.Message, error) {
 	this.curr_id = this.curr_id + 1
-	v:=url.Query()
+	v:=u.Query()
 	v.Add("msg_id",fmt.Sprintf("%v",this.curr_id))	//给topic加一个msgid 这样服务器就会返回这次请求的结果,否则服务器不会返回结果
-	url.RawQuery=v.Encode()
-	topic := url.String()
+	u.RawQuery=v.Encode()
+	topic := u.String()
 	result := make(chan MQTT.Message)
 	this.On(topic, func(client MQTT.Client, msg MQTT.Message) {
 		result <- msg
@@ -112,6 +115,20 @@ func (this *MqttWork) RequestURI(url *url.URL, body []byte) (MQTT.Message, error
 		return nil, fmt.Errorf("client closed")
 	}
 	return msg, nil
+}
+
+/**
+ * 向服务器发送一条消息
+ * @param topic
+ * @param msg
+ * @param callback
+ */
+func (this *MqttWork) RequestURINR(url *url.URL, body []byte) {
+	this.curr_id = this.curr_id + 1
+	v:=url.Query()
+	url.RawQuery=v.Encode()
+	topic := url.String()
+	this.GetClient().Publish(topic, 0, false, body)
 }
 
 /**
