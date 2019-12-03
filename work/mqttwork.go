@@ -17,6 +17,7 @@ import (
 	"fmt"
 	MQTT "github.com/eclipse/paho.mqtt.golang"
 	"strings"
+	"sync"
 	_ "time"
 	"net/url"
 )
@@ -24,11 +25,13 @@ import (
 type MqttWork struct {
 	client        MQTT.Client
 	waiting_queue map[string]func(client MQTT.Client, msg MQTT.Message)
+	lock			*sync.Mutex
 	curr_id       int64
 }
 
 func (this *MqttWork) GetDefaultOptions(addrURI string) *MQTT.ClientOptions {
 	this.curr_id = 0
+	this.lock=new(sync.Mutex)
 	this.waiting_queue = make(map[string]func(client MQTT.Client, msg MQTT.Message))
 	opts := MQTT.NewClientOptions()
 	opts.AddBroker(addrURI)
@@ -40,6 +43,7 @@ func (this *MqttWork) GetDefaultOptions(addrURI string) *MQTT.ClientOptions {
 	opts.SetAutoReconnect(false)
 	opts.SetDefaultPublishHandler(func(client MQTT.Client, msg MQTT.Message) {
 		//收到消息
+		this.lock.Lock()
 		if callback, ok := this.waiting_queue[msg.Topic()]; ok {
 			//有等待消息的callback 还缺一个信息超时的处理机制
 			_, err := url.Parse(msg.Topic())
@@ -52,6 +56,7 @@ func (this *MqttWork) GetDefaultOptions(addrURI string) *MQTT.ClientOptions {
 			}
 			go callback(client, msg)
 		}
+		this.lock.Unlock()
 	})
 	return opts
 }
@@ -147,5 +152,7 @@ func (this *MqttWork) RequestNR(topic string, body []byte) {
  */
 func (this *MqttWork) On(topic string, callback func(client MQTT.Client, msg MQTT.Message)) {
 	////服务器不会返回结果
+	this.lock.Lock()
 	this.waiting_queue[topic] = callback //添加这条消息到等待队列
+	this.lock.Unlock()
 }
