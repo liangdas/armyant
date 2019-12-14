@@ -28,6 +28,8 @@ type LoopTask struct {
 	q *utils.Queue
 
 	wg sync.WaitGroup
+
+	UserData interface{}
 }
 
 // Run makes all the requests, prints the summary. It blocks until
