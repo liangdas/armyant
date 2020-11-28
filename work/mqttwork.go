@@ -61,7 +61,7 @@ func (this *MqttWork) GetDefaultOptions(addrURI string) *MQTT.ClientOptions {
 	return opts
 }
 func (this *MqttWork) Connect(opts *MQTT.ClientOptions) error {
-	fmt.Println("Connect...")
+	//fmt.Println("Connect...")
 	this.client = MQTT.NewClient(opts)
 	if token := this.client.Connect(); token.Wait() && token.Error() != nil {
 		return token.Error()
